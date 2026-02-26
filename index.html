@@ -401,6 +401,36 @@
       50%{transform:scale(1.03)}
       100%{transform:scale(1)}
     }
+
+    /* 정답/오답 피드백 애니메이션 */
+.problem.okFlash{
+  animation: okFlash .35s ease;
+}
+@keyframes okFlash{
+  0%{ transform: scale(1); filter:none; }
+  60%{ transform: scale(1.02); filter: drop-shadow(0 0 18px rgba(46,229,157,.35)); }
+  100%{ transform: scale(1); filter:none; }
+}
+
+.answerRow.shake{
+  animation: shake .28s ease;
+  border-bottom-color: rgba(255,77,109,.7);
+}
+@keyframes shake{
+  0%{ transform: translateX(0); }
+  25%{ transform: translateX(-8px); }
+  50%{ transform: translateX(8px); }
+  75%{ transform: translateX(-6px); }
+  100%{ transform: translateX(0); }
+}
+
+/* OK 버튼 비활성 */
+.key.ok:disabled{
+  opacity: .45;
+  cursor: not-allowed;
+  filter: grayscale(.2);
+}
+    
   </style>
 </head>
 <body>
@@ -473,7 +503,7 @@
     <button class="key" data-k="9">9</button>
     <button class="key secondary danger" data-k="back">←</button>
     <button class="key" data-k="0">0</button>
-    <button class="key ok" data-k="ok">OK</button>
+    <button class="key ok" id="okBtn" data-k="ok">OK</button>
   </div>
 
   <div class="hint">
@@ -590,6 +620,10 @@
     const meNameEl = $('meName');
     const rankListEl = $('rankList');
 
+    const okBtn = document.getElementById('okBtn');
+const problemEl = document.getElementById('problemText') || document.querySelector('.problem');
+const answerRowEl = document.querySelector('.answerRow');
+
     const LS_KEY = 'space_add_v1';
 
     const state = {
@@ -601,9 +635,9 @@
       best: 0,
       diff: 20,
       seedBots: [
-        {name:'HK Choiem', score: 103457429},
-        {name:'US 마리포도체…', score: 46065801},
-        {name:'US 토니', score: 25407864},
+        {name:'Clara', score: 46065801},
+        {name:'Nathan', score: 46065801},
+        {name:'Clara', score: 46065801},
       ],
     };
 
@@ -742,40 +776,72 @@
       setBoost(true);
       clearTimeout(addDigit._t);
       addDigit._t = setTimeout(()=>setBoost(false), 140);
+      updateOkState();   // ✅ 추가
     }
 
     function backspace(){
       state.answer = state.answer.slice(0,-1);
       answerText.textContent = state.answer;
+      updateOkState();   // ✅ 추가
     }
 
-    function submit(){
-      const ans = state.answer === '' ? NaN : Number(state.answer);
-      const correct = state.a + state.b;
+   function submit(){
+  // ✅ 입력 없으면 못 누르게 (키보드 Enter도 막음)
+  if(state.answer.trim() === ''){
+    toastMsg('답을 입력하세요');
+    return;
+  }
 
-      if(ans === correct){
-        state.streak += 1;
-        // 점수 규칙: streak이 늘수록 가산
-        const gain = 10 + Math.min(50, state.streak * 2);
-        state.score += gain;
-        if(state.score > state.best){
-          state.best = state.score;
-          save();
-          renderRank();
-        }
-        pulseRocket(true);
-        renderHeader();
-        toastMsg(`정답! +${gain}`);
-        newProblem();
-      }else{
-        pulseRocket(false);
-        toastMsg(`오답… 정답은 ${correct}`);
-        state.streak = 0;
-        state.score = 0;
-        renderHeader();
-        newProblem();
-      }
+  const ans = Number(state.answer);
+  const correct = state.a + state.b;
+
+  if(ans === correct){
+    // ✅ 정답 애니메이션
+    problemEl?.classList.remove('okFlash');
+    void problemEl?.offsetWidth; // reflow trick
+    problemEl?.classList.add('okFlash');
+
+    setBoost(true);
+    setTimeout(()=>setBoost(false), 250);
+    pulseRocket(true);
+
+    // 점수 규칙
+    state.streak += 1;
+    const gain = 10 + Math.min(50, state.streak * 2);
+    state.score += gain;
+
+    if(state.score > state.best){
+      state.best = state.score;
+      save();
+      renderRank();
     }
+
+    renderHeader();
+    toastMsg(`정답! +${gain}`);
+
+    // ✅ 다음 문제로
+    newProblem();
+    updateOkState();
+    return;
+  }
+
+  // ❌ 오답: 점수/스트릭 리셋은 하되 "같은 문제"에서 다시 입력 가능
+  answerRowEl?.classList.remove('shake');
+  void answerRowEl?.offsetWidth;
+  answerRowEl?.classList.add('shake');
+
+  pulseRocket(false);
+  toastMsg('오답… 다시 입력해보세요');
+
+  state.streak = 0;
+  state.score = 0;
+
+  // ✅ 답만 지우고 문제는 그대로 유지
+  state.answer = '';
+  answerText.textContent = '';
+  renderHeader();
+  updateOkState();
+}
 
     function hardReset(){
       if(!confirm('최고점/닉네임/설정까지 모두 초기화할까요?')) return;
@@ -837,6 +903,13 @@
         toastMsg('리셋');
       }
     });
+    function updateOkState(){
+  const hasInput = state.answer.trim().length > 0;
+  okBtn.disabled = !hasInput;
+}
+
+// 초기에도 한번
+updateOkState();
 
     /* init */
     load();
@@ -844,6 +917,7 @@
   </script>
 </body>
 </html>
+
 
 
 

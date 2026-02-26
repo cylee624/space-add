@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Space Add - 단일 HTML</title>
+  <style>
+    :root{
+      --bg1:#050b1a; --bg2:#071a3b;
+      --panel:#0b1633cc; --stroke:#1b3a6b;
+      --text:#e9f3ff; --muted:#8fb3d9;
+      --accent:#35d6ff; --good:#2ee59d; --bad:#ff4d6d;
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Apple SD Gothic Neo", Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 20%, #0c1f4d 0%, rgba(12,31,77,0) 60%),
+                  radial-gradient(900px 700px at 75% 65%, #082a5f 0%, rgba(8,42,95,0) 60%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      overflow:hidden;
+    }
+
+    /* stars canvas behind */
+    canvas#stars{position:fixed; inset:0; z-index:0}
+
+    .app{
+      position:relative; z-index:1;
+      height:100%;
+      display:grid;
+      grid-template-columns: 1fr minmax(260px, 340px);
+      gap:16px;
+      padding:18px;
+    }
+    @media (max-width: 860px){
+      body{overflow:auto}
+      canvas#stars{position:absolute}
+      .app{
+        grid-template-columns: 1fr;
+        height:auto;
+      }
+      .right{order:2}
+      .left{min-height:70vh}
+    }
+
+    .card{
+      background: var(--panel);
+      border:1px solid rgba(53,214,255,.20);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    /* LEFT GAME AREA */
+    .left{
+      position:relative;
+      border-radius: var(--r);
+      overflow:hidden;
+      min-height: calc(100vh - 36px);
+    }
+
+    .hud{
+      position:absolute; left:16px; top:14px;
+      display:flex; gap:18px;
+      align-items:flex-end;
+      z-index:5;
+    }
+    .hud .box{
+      padding:10px 12px;
+      background: rgba(0,0,0,.28);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+    }
+    .hud .label{
+      font-size:12px; letter-spacing:.12em;
+      color:rgba(233,243,255,.7);
+      text-transform:uppercase;
+    }
+    .hud .value{
+      margin-top:4px;
+      font-size:26px; font-weight:800;
+      display:flex; align-items:center; gap:8px;
+    }
+    .flame{filter: drop-shadow(0 0 10px rgba(255,170,0,.45))}
+    .zone{
+      position:absolute; right:16px; top:16px;
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px;
+      background: rgba(0,0,0,.28);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      z-index:5;
+      color: rgba(233,243,255,.85);
+      font-weight:600;
+    }
+    .zone small{display:block; font-size:11px; color:rgba(233,243,255,.65)}
+    .zone .planet{font-size:18px}
+
+    /* rocket */
+    .space{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .rocket{
+      position:absolute;
+      left:52%; top:45%;
+      width:84px; height:84px;
+      transform: translate(-50%,-50%) rotate(-18deg);
+      transition: transform .22s ease;
+      z-index:3;
+      user-select:none;
+      pointer-events:none;
+      filter: drop-shadow(0 12px 20px rgba(0,0,0,.35));
+    }
+    .rocket.boost{
+      transform: translate(-50%,-55%) rotate(-14deg) scale(1.04);
+    }
+    .rocket.wobble{
+      animation: wobble .28s ease;
+    }
+    @keyframes wobble{
+      0%{transform:translate(-50%,-50%) rotate(-18deg)}
+      50%{transform:translate(-50%,-50%) rotate(-8deg)}
+      100%{transform:translate(-50%,-50%) rotate(-18deg)}
+    }
+    .thrust{
+      position:absolute;
+      left:52%; top:52%;
+      width:22px; height:46px;
+      transform: translate(-50%,-50%) rotate(-18deg);
+      opacity:.0;
+      z-index:2;
+      pointer-events:none;
+      filter: blur(.2px) drop-shadow(0 0 14px rgba(255,120,0,.55));
+    }
+    .thrust.on{
+      opacity:1;
+      animation: thrust .18s infinite alternate;
+    }
+    @keyframes thrust{
+      from{transform: translate(-50%,-50%) rotate(-18deg) scaleY(.9)}
+      to{transform: translate(-50%,-50%) rotate(-18deg) scaleY(1.05)}
+    }
+
+    /* bottom game UI */
+    .bottom{
+      position:absolute; left:0; right:0; bottom:0;
+      padding:18px 18px 22px;
+      z-index:6;
+      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(3,8,18,.70) 30%, rgba(3,8,18,.95) 100%);
+    }
+    .problemRow{
+      display:flex; align-items:flex-end; justify-content:center;
+      gap:14px;
+      padding:10px 0 14px;
+    }
+    .problem{
+      font-weight:900;
+      font-size:64px;
+      letter-spacing:-.02em;
+      text-shadow: 0 0 22px rgba(53,214,255,.22);
+    }
+    .equals{opacity:.75}
+    .inputWrap{
+      display:flex; align-items:center; gap:10px;
+      border-bottom: 3px solid rgba(53,214,255,.35);
+      padding: 0 0 6px;
+      min-width: 180px;
+      justify-content:space-between;
+    }
+    .answer{
+      font-size:52px; font-weight:900;
+      min-height: 56px;
+      min-width: 120px;
+      text-align:right;
+      color: rgba(233,243,255,.95);
+    }
+    .cursor{
+      width:10px; height:44px;
+      background: rgba(53,214,255,.85);
+      border-radius:6px;
+      animation: blink 1s infinite;
+      box-shadow: 0 0 14px rgba(53,214,255,.45);
+    }
+    @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.2}}
+
+    .keypad{
+      max-width: 520px;
+      margin: 0 auto;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+      padding-top:8px;
+    }
+    button.key{
+      border:1px solid rgba(53,214,255,.22);
+      background: rgba(6,18,40,.55);
+      color: var(--text);
+      font-size:22px;
+      font-weight:800;
+      border-radius: 14px;
+      padding:16px 0;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+      cursor:pointer;
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    button.key:active{transform: scale(.98)}
+    button.key:hover{background: rgba(10,28,62,.65)}
+    .key.secondary{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.10);
+      color: rgba(233,243,255,.85);
+    }
+    .key.ok{
+      background: rgba(46,229,157,.18);
+      border-color: rgba(46,229,157,.45);
+      color: #d9fff1;
+    }
+    .key.ok:hover{background: rgba(46,229,157,.22)}
+    .key.danger{
+      background: rgba(255,77,109,.16);
+      border-color: rgba(255,77,109,.40);
+      color: #ffe6ec;
+    }
+
+    .hint{
+      text-align:center;
+      margin-top:10px;
+      color: rgba(233,243,255,.55);
+      font-size:12px;
+    }
+    .hint kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      padding:2px 6px;
+      border-radius:8px;
+      margin:0 3px;
+    }
+
+    /* RIGHT PANEL */
+    .right{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      min-height: calc(100vh - 36px);
+    }
+    .panel{
+      padding:14px;
+    }
+    .panel h3{
+      margin:0 0 10px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:18px;
+      letter-spacing:.01em;
+    }
+    .panel h3 .trophy{filter: drop-shadow(0 0 12px rgba(255,210,0,.25))}
+    .rankList{display:flex; flex-direction:column; gap:10px;}
+    .rankItem{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .rankLeft{
+      display:flex; align-items:center; gap:10px;
+      min-width: 0;
+    }
+    .medal{font-size:18px}
+    .name{
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 170px;
+    }
+    .score{
+      font-weight:900;
+      letter-spacing:.02em;
+      color: rgba(233,243,255,.9);
+    }
+
+    .me{
+      padding:14px;
+    }
+    .meRow{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      background: rgba(53,214,255,.10);
+      border:1px solid rgba(53,214,255,.25);
+      border-radius: 14px;
+      padding:12px 12px;
+    }
+    .meRow .tag{color:rgba(233,243,255,.75); font-weight:700}
+    .meRow .val{font-weight:900}
+
+    .settings{
+      padding:14px;
+    }
+    .settings label{
+      display:block;
+      font-size:12px;
+      color: rgba(233,243,255,.65);
+      margin-bottom:6px;
+    }
+    .settings .row{
+      display:grid;
+      grid-template-columns: 1fr 90px;
+      gap:10px;
+      align-items:center;
+    }
+    input[type="text"]{
+      width:100%;
+      padding:12px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.28);
+      color: var(--text);
+      outline:none;
+    }
+    input[type="text"]:focus{border-color: rgba(53,214,255,.45)}
+    select{
+      width:100%;
+      padding:12px 10px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.28);
+      color: var(--text);
+      outline:none;
+    }
+    .smallbtn{
+      width:100%;
+      padding:12px 10px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.07);
+      color: rgba(233,243,255,.9);
+      font-weight:800;
+      cursor:pointer;
+    }
+    .smallbtn:hover{background: rgba(255,255,255,.09)}
+    .toast{
+      position:fixed; left:50%; bottom:18px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.12);
+      padding:10px 12px;
+      border-radius: 14px;
+      color: rgba(233,243,255,.92);
+      font-weight:700;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index:50;
+      box-shadow: var(--shadow);
+    }
+    .toast.show{opacity:1; transform: translateX(-50%) translateY(-6px)}
+    .pulse{
+      animation: pulse .26s ease;
+    }
+    @keyframes pulse{
+      0%{transform:scale(1)}
+      50%{transform:scale(1.03)}
+      100%{transform:scale(1)}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+
+  <div class="app">
+    <!-- LEFT -->
+    <div class="left card" id="leftCard" aria-label="Space Add game">
+      <div class="hud">
+        <div class="box">
+          <div class="label">Score</div>
+          <div class="value"><span id="score">0</span></div>
+        </div>
+        <div class="box">
+          <div class="label">Streak</div>
+          <div class="value"><span id="streak">0</span> <span class="flame">🔥</span></div>
+        </div>
+      </div>
+
+      <div class="zone">
+        <span class="planet">🌎</span>
+        <div>
+          <small>Zone</small>
+          <div id="zoneName">Earth Orbit</div>
+        </div>
+      </div>
+
+      <div class="space">
+        <!-- simple SVG rocket -->
+        <svg class="rocket" id="rocket" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+          <path d="M70 10c18 10 30 30 30 52 0 24-16 46-40 52-20 5-39-3-51-17 16 0 31-7 41-17 12-12 19-28 20-46z" fill="#ff5b7f" opacity=".95"/>
+          <path d="M58 18c14 10 22 26 22 44 0 18-9 35-24 44-16 10-33 9-47 2 11-2 22-8 31-17 14-14 20-33 18-55z" fill="#ff8fb0" opacity=".85"/>
+          <path d="M72 18c10 10 16 24 16 38 0 18-9 35-24 44-2 1-4 2-6 3 8-10 13-23 13-36 0-17-6-34-19-49 7-2 14-2 20 0z" fill="#ffffff" opacity=".95"/>
+          <circle cx="76" cy="52" r="10" fill="#35d6ff" opacity=".85"/>
+          <circle cx="76" cy="52" r="5" fill="#bdf3ff" opacity=".9"/>
+        </svg>
+
+        <svg class="thrust" id="thrust" viewBox="0 0 30 60" aria-hidden="true">
+          <path d="M15 0c6 10 10 18 10 28 0 16-10 32-10 32S5 44 5 28C5 18 9 10 15 0z" fill="#ff7a00" opacity=".9"/>
+          <path d="M15 10c4 7 7 13 7 20 0 12-7 24-7 24s-7-12-7-24c0-7 3-13 7-20z" fill="#ffd400" opacity=".9"/>
+        </svg>
+      </div>
+
+      <div class="bottom">
+        <div class="problemRow">
+          <div class="problem">
+            <span id="a">0</span>
+            <span class="equals"> + </span>
+            <span id="b">0</span>
+            <span class="equals"> = </span>
+          </div>
+          <div class="inputWrap" aria-label="answer input">
+            <div class="answer" id="answerText"></div>
+            <div class="cursor" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div class="keypad" aria-label="keypad">
+          <button class="key" data-k="1">1</button>
+          <button class="key" data-k="2">2</button>
+          <button class="key" data-k="3">3</button>
+          <button class="key" data-k="4">4</button>
+          <button class="key" data-k="5">5</button>
+          <button class="key" data-k="6">6</button>
+          <button class="key" data-k="7">7</button>
+          <button class="key" data-k="8">8</button>
+          <button class="key" data-k="9">9</button>
+          <button class="key secondary danger" data-k="back">←</button>
+          <button class="key" data-k="0">0</button>
+          <button class="key ok" data-k="ok">OK</button>
+        </div>
+
+        <div class="hint">
+          키보드도 지원: <kbd>0-9</kbd> <kbd>Enter</kbd> <kbd>Backspace</kbd> <kbd>R</kbd>(리셋)
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right">
+      <div class="panel card">
+        <h3><span class="trophy">🏆</span> Space Ranking <span style="opacity:.65;font-weight:700;font-size:12px;margin-left:auto">로컬(내 브라우저)</span></h3>
+        <div class="rankList" id="rankList"></div>
+      </div>
+
+      <div class="me card">
+        <div class="meRow">
+          <div>
+            <div class="tag">내 최고점</div>
+            <div class="val" id="bestScore">0</div>
+          </div>
+          <div style="text-align:right">
+            <div class="tag">내 닉네임</div>
+            <div class="val" id="meName">PLAYER</div>
+          </div>
+        </div>
+        <div style="margin-top:10px; color:rgba(233,243,255,.65); font-size:12px; line-height:1.5">
+          ※ 서버 없이도 랭킹 느낌 내기 위해 “가짜 봇 + 내 기록”을 섞어 보여줘요.
+        </div>
+      </div>
+
+      <div class="settings card">
+        <label>닉네임</label>
+        <div class="row">
+          <input id="nickname" type="text" maxlength="16" placeholder="예: Clara" />
+          <button class="smallbtn" id="saveNick">저장</button>
+        </div>
+
+        <div style="height:10px"></div>
+
+        <label>난이도 (숫자 범위)</label>
+        <div class="row" style="grid-template-columns: 1fr 1fr;">
+          <select id="difficulty">
+            <option value="10">Easy (0~9)</option>
+            <option value="20" selected>Normal (0~19)</option>
+            <option value="50">Hard (0~49)</option>
+            <option value="100">Insane (0~99)</option>
+          </select>
+          <button class="smallbtn" id="resetAll">기록 초기화</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ---------------------------
+       Stars background
+    ---------------------------- */
+    const canvas = document.getElementById('stars');
+    const ctx = canvas.getContext('2d');
+    let W=0, H=0, stars=[];
+    function resize(){
+      W = canvas.width = Math.floor(window.innerWidth * (window.devicePixelRatio||1));
+      H = canvas.height = Math.floor(window.innerHeight * (window.devicePixelRatio||1));
+      canvas.style.width = window.innerWidth+'px';
+      canvas.style.height = window.innerHeight+'px';
+      const count = Math.min(240, Math.floor((window.innerWidth*window.innerHeight)/6500));
+      stars = Array.from({length:count}, () => ({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        r: (Math.random()*1.6 + 0.4) * (window.devicePixelRatio||1),
+        a: Math.random()*0.7 + 0.2,
+        v: Math.random()*0.22 + 0.06
+      }));
+    }
+    function drawStars(){
+      ctx.clearRect(0,0,W,H);
+      for(const s of stars){
+        s.y += s.v * (window.devicePixelRatio||1);
+        if(s.y > H) { s.y = -10; s.x = Math.random()*W; }
+        ctx.globalAlpha = s.a;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(drawStars);
+    }
+    window.addEventListener('resize', resize);
+    resize(); drawStars();
+
+    /* ---------------------------
+       Game logic
+    ---------------------------- */
+    const $ = (id)=>document.getElementById(id);
+
+    const scoreEl = $('score');
+    const streakEl = $('streak');
+    const aEl = $('a');
+    const bEl = $('b');
+    const answerText = $('answerText');
+    const rocket = $('rocket');
+    const thrust = $('thrust');
+    const toast = $('toast');
+
+    const nicknameInput = $('nickname');
+    const saveNickBtn = $('saveNick');
+    const resetAllBtn = $('resetAll');
+    const difficultySel = $('difficulty');
+    const bestScoreEl = $('bestScore');
+    const meNameEl = $('meName');
+    const rankListEl = $('rankList');
+
+    const LS_KEY = 'space_add_v1';
+
+    const state = {
+      a: 0, b: 0,
+      score: 0,
+      streak: 0,
+      answer: '',
+      nickname: 'PLAYER',
+      best: 0,
+      diff: 20,
+      seedBots: [
+        {name:'HK Choiem', score: 103457429},
+        {name:'US 마리포도체…', score: 46065801},
+        {name:'US 토니', score: 25407864},
+      ],
+    };
+
+    function load(){
+      try{
+        const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+        if(saved.nickname) state.nickname = saved.nickname;
+        if(Number.isFinite(saved.best)) state.best = saved.best;
+        if(Number.isFinite(saved.diff)) state.diff = saved.diff;
+      }catch(e){}
+      nicknameInput.value = state.nickname;
+      difficultySel.value = String(state.diff);
+      renderHeader();
+      renderRank();
+    }
+
+    function save(){
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        nickname: state.nickname,
+        best: state.best,
+        diff: state.diff
+      }));
+    }
+
+    function toastMsg(msg){
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(()=>toast.classList.remove('show'), 1200);
+    }
+
+    function randInt(max){
+      return Math.floor(Math.random()*max);
+    }
+
+    function zoneNameByStreak(st){
+      if(st < 5) return 'Earth Orbit';
+      if(st < 12) return 'Moon Base';
+      if(st < 25) return 'Mars Route';
+      if(st < 40) return 'Jupiter Drift';
+      return 'Deep Space';
+    }
+
+    function newProblem(){
+      const max = state.diff;
+      // make it feel like add.jeho: larger numbers as score increases
+      const boost = Math.min(200, Math.floor(state.score/25));
+      const localMax = Math.min(max + boost, 999);
+      state.a = randInt(localMax);
+      state.b = randInt(localMax);
+      aEl.textContent = state.a;
+      bEl.textContent = state.b;
+      state.answer = '';
+      answerText.textContent = '';
+      $('zoneName').textContent = zoneNameByStreak(state.streak);
+    }
+
+    function setBoost(on){
+      if(on){
+        rocket.classList.add('boost');
+        thrust.classList.add('on');
+      }else{
+        rocket.classList.remove('boost');
+        thrust.classList.remove('on');
+      }
+    }
+
+    function pulseRocket(ok){
+      rocket.classList.add('wobble');
+      rocket.style.filter = ok
+        ? 'drop-shadow(0 12px 20px rgba(0,0,0,.35)) drop-shadow(0 0 18px rgba(46,229,157,.25))'
+        : 'drop-shadow(0 12px 20px rgba(0,0,0,.35)) drop-shadow(0 0 18px rgba(255,77,109,.25))';
+      setTimeout(()=>rocket.classList.remove('wobble'), 300);
+      setTimeout(()=>rocket.style.filter='drop-shadow(0 12px 20px rgba(0,0,0,.35))', 500);
+    }
+
+    function renderHeader(){
+      scoreEl.textContent = state.score;
+      streakEl.textContent = state.streak;
+      bestScoreEl.textContent = state.best;
+      meNameEl.textContent = state.nickname || 'PLAYER';
+    }
+
+    function buildLocalRanking(){
+      // Fake bots + me
+      const me = {name: state.nickname || 'PLAYER', score: state.best};
+      const list = [...state.seedBots, me]
+        .filter(x => Number.isFinite(x.score))
+        .sort((x,y)=> y.score - x.score);
+
+      // assign medals for top 3
+      const medals = ['🥇','🥈','🥉'];
+      return list.slice(0, 6).map((x, i) => ({
+        rank: i+1,
+        medal: medals[i] || '🎖️',
+        name: x.name,
+        score: x.score
+      }));
+    }
+
+    function renderRank(){
+      const rows = buildLocalRanking();
+      rankListEl.innerHTML = '';
+      rows.forEach(r=>{
+        const div = document.createElement('div');
+        div.className = 'rankItem';
+        div.innerHTML = `
+          <div class="rankLeft">
+            <div class="medal">${r.medal}</div>
+            <div class="name" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</div>
+          </div>
+          <div class="score">${formatScore(r.score)}</div>
+        `;
+        rankListEl.appendChild(div);
+      });
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[m]));
+    }
+
+    function formatScore(n){
+      // keep it readable but still "big"
+      if(n >= 1_000_000) return Math.floor(n/1_000).toLocaleString() + 'K';
+      return Number(n||0).toLocaleString();
+    }
+
+    function addDigit(d){
+      if(state.answer.length >= 4) return;
+      // avoid leading zeros like "00"
+      if(state.answer === '0') state.answer = '';
+      state.answer += String(d);
+      answerText.textContent = state.answer;
+      setBoost(true);
+      clearTimeout(addDigit._t);
+      addDigit._t = setTimeout(()=>setBoost(false), 140);
+    }
+
+    function backspace(){
+      state.answer = state.answer.slice(0,-1);
+      answerText.textContent = state.answer;
+    }
+
+    function submit(){
+      const ans = state.answer === '' ? NaN : Number(state.answer);
+      const correct = state.a + state.b;
+
+      if(ans === correct){
+        state.streak += 1;
+        // 점수 규칙: streak이 늘수록 가산
+        const gain = 10 + Math.min(50, state.streak * 2);
+        state.score += gain;
+        if(state.score > state.best){
+          state.best = state.score;
+          save();
+          renderRank();
+        }
+        pulseRocket(true);
+        renderHeader();
+        toastMsg(`정답! +${gain}`);
+        newProblem();
+      }else{
+        pulseRocket(false);
+        toastMsg(`오답… 정답은 ${correct}`);
+        state.streak = 0;
+        state.score = 0;
+        renderHeader();
+        newProblem();
+      }
+    }
+
+    function hardReset(){
+      if(!confirm('최고점/닉네임/설정까지 모두 초기화할까요?')) return;
+      localStorage.removeItem(LS_KEY);
+      state.nickname = 'PLAYER';
+      state.best = 0;
+      state.diff = 20;
+      state.score = 0;
+      state.streak = 0;
+      state.answer = '';
+      load();
+      newProblem();
+      toastMsg('초기화 완료');
+    }
+
+    /* ---------------------------
+       Event wiring
+    ---------------------------- */
+    document.querySelectorAll('button.key').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const k = btn.dataset.k;
+        if(k === 'ok') return submit();
+        if(k === 'back') return backspace();
+        addDigit(k);
+      });
+    });
+
+    saveNickBtn.addEventListener('click', ()=>{
+      const nick = nicknameInput.value.trim().slice(0,16) || 'PLAYER';
+      state.nickname = nick;
+      save();
+      renderHeader();
+      renderRank();
+      toastMsg('닉네임 저장');
+    });
+
+    difficultySel.addEventListener('change', ()=>{
+      state.diff = Number(difficultySel.value) || 20;
+      save();
+      toastMsg('난이도 변경');
+      newProblem();
+    });
+
+    resetAllBtn.addEventListener('click', hardReset);
+
+    window.addEventListener('keydown', (e)=>{
+      if(e.key >= '0' && e.key <= '9'){
+        addDigit(e.key);
+      }else if(e.key === 'Backspace'){
+        backspace();
+      }else if(e.key === 'Enter'){
+        submit();
+      }else if(e.key.toLowerCase() === 'r'){
+        state.score = 0;
+        state.streak = 0;
+        state.answer = '';
+        renderHeader();
+        newProblem();
+        toastMsg('리셋');
+      }
+    });
+
+    /* init */
+    load();
+    newProblem();
+  </script>
+</body>
+</html>

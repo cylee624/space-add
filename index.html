@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Space Add - 단일 HTML</title>
+  <title>:Space Add</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
   <style>
     :root{
       --bg1:#050b1a; --bg2:#071a3b;
@@ -153,17 +154,35 @@
       background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(3,8,18,.70) 30%, rgba(3,8,18,.95) 100%);
     }
     .problemRow{
-      display:flex; align-items:flex-end; justify-content:center;
-      gap:14px;
-      padding:10px 0 14px;
-    }
-    .problem{
-      font-weight:900;
-      font-size:64px;
-      letter-spacing:-.02em;
-      text-shadow: 0 0 22px rgba(53,214,255,.22);
-    }
-    .equals{opacity:.75}
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  padding:20px 0 16px;
+}
+
+.problem{
+  font-weight:900;
+  font-size: clamp(48px, 12vw, 88px);
+  letter-spacing:-0.02em;
+  display:flex;
+  align-items:baseline;
+  gap:12px;
+  text-align:center;
+  text-shadow:
+    0 0 20px rgba(53,214,255,.25),
+    0 0 40px rgba(53,214,255,.12);
+	font-family: 'Orbitron', sans-serif;
+}
+
+.problem span{
+  display:inline-block;
+  min-width:1ch;
+}
+
+.equals{
+  opacity:.6;
+}
     .inputWrap{
       display:flex; align-items:center; gap:10px;
       border-bottom: 3px solid rgba(53,214,255,.35);
@@ -415,12 +434,12 @@
 
       <div class="bottom">
         <div class="problemRow">
-          <div class="problem">
-            <span id="a">0</span>
-            <span class="equals"> + </span>
-            <span id="b">0</span>
-            <span class="equals"> = </span>
-          </div>
+          <div class="problem" id="problemText">
+  <span id="a">0</span>
+  <span class="equals">+</span>
+  <span id="b">0</span>
+  <span class="equals">=</span>
+</div>
           <div class="inputWrap" aria-label="answer input">
             <div class="answer" id="answerText"></div>
             <div class="cursor" aria-hidden="true"></div>

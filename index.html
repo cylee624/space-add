@@ -430,12 +430,62 @@
   cursor: not-allowed;
   filter: grayscale(.2);
 }
+    /* ✅ 좌우 스크롤 방지 (모바일/데스크탑) */
+html, body{
+  width:100%;
+  overflow-x:hidden !important;
+}
+
+/* ✅ 오답 빨간 글로우 */
+.answerRow.badGlow{
+  box-shadow: 0 0 0 1px rgba(255,77,109,.25), 0 0 24px rgba(255,77,109,.25);
+}
+
+/* ✅ streak 배경 변화(바디에 클래스 붙여서 연출) */
+body.zone-earth{
+  background:
+    radial-gradient(1200px 700px at 20% 20%, #0c1f4d 0%, rgba(12,31,77,0) 60%),
+    radial-gradient(900px 700px at 75% 65%, #082a5f 0%, rgba(8,42,95,0) 60%),
+    linear-gradient(180deg, #050b1a, #071a3b);
+}
+body.zone-moon{
+  background:
+    radial-gradient(1100px 700px at 30% 20%, rgba(180,210,255,.18) 0%, rgba(0,0,0,0) 60%),
+    radial-gradient(900px 700px at 70% 70%, rgba(110,180,255,.18) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, #041026, #082a52);
+}
+body.zone-mars{
+  background:
+    radial-gradient(1000px 700px at 25% 20%, rgba(255,120,80,.16) 0%, rgba(0,0,0,0) 60%),
+    radial-gradient(900px 700px at 75% 75%, rgba(255,70,120,.12) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, #120714, #23124b);
+}
+body.zone-jupiter{
+  background:
+    radial-gradient(1100px 700px at 20% 30%, rgba(255,210,120,.14) 0%, rgba(0,0,0,0) 60%),
+    radial-gradient(900px 700px at 80% 70%, rgba(120,255,220,.10) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, #070b18, #07233a);
+}
+body.zone-deep{
+  background:
+    radial-gradient(1100px 700px at 30% 20%, rgba(200,120,255,.14) 0%, rgba(0,0,0,0) 60%),
+    radial-gradient(900px 700px at 70% 75%, rgba(53,214,255,.10) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, #040615, #061a3a);
+}
+    canvas#fx{
+  position:fixed;
+  inset:0;
+  z-index:2;          /* stars(0) 위, UI(1) 위로 올라오면 안돼서 */
+  pointer-events:none;
+}
+.app{ z-index:3; }     /* UI가 파티클 위로 */
     
   </style>
 </head>
 <body>
   <canvas id="stars"></canvas>
-
+  <canvas id="fx"></canvas>
+  
   <div class="app">
     <!-- LEFT -->
     <div class="left card" id="leftCard" aria-label="Space Add game">
@@ -635,9 +685,9 @@ const answerRowEl = document.querySelector('.answerRow');
       best: 0,
       diff: 20,
       seedBots: [
-        {name:'Clara', score: 46065801},
-        {name:'Nathan', score: 46065801},
-        {name:'Clara', score: 46065801},
+        {name:'Clara', score: 100},
+        {name:'Nathan', score: 100},
+        {name:'Jane', score: 100},
       ],
     };
 
@@ -719,6 +769,7 @@ const answerRowEl = document.querySelector('.answerRow');
       streakEl.textContent = state.streak;
       bestScoreEl.textContent = state.best;
       meNameEl.textContent = state.nickname || 'PLAYER';
+      applyZoneClass(state.streak); // ✅ 추가
     }
 
     function buildLocalRanking(){
@@ -815,7 +866,9 @@ const answerRowEl = document.querySelector('.answerRow');
       save();
       renderRank();
     }
-
+  // ✅ 파티클: 로켓 위치 기준으로 폭발
+const r = rocket.getBoundingClientRect();
+burstAt(r.left + r.width*0.55, r.top + r.height*0.45);
     renderHeader();
     toastMsg(`정답! +${gain}`);
 
@@ -832,7 +885,8 @@ const answerRowEl = document.querySelector('.answerRow');
 
   pulseRocket(false);
   toastMsg('오답… 다시 입력해보세요');
-
+  answerRowEl?.classList.add('badGlow');
+setTimeout(()=>answerRowEl?.classList.remove('badGlow'), 280);
   state.streak = 0;
   state.score = 0;
 
@@ -907,16 +961,103 @@ const answerRowEl = document.querySelector('.answerRow');
   const hasInput = state.answer.trim().length > 0;
   okBtn.disabled = !hasInput;
 }
+    // ✅ FX canvas (정답 파티클)
+const fxCanvas = document.getElementById('fx');
+const fxCtx = fxCanvas.getContext('2d');
+let FXW=0, FXH=0;
+let particles = [];
+
+function resizeFx(){
+  const dpr = window.devicePixelRatio || 1;
+  FXW = fxCanvas.width = Math.floor(window.innerWidth * dpr);
+  FXH = fxCanvas.height = Math.floor(window.innerHeight * dpr);
+  fxCanvas.style.width = window.innerWidth+'px';
+  fxCanvas.style.height = window.innerHeight+'px';
+}
+resizeFx();
+window.addEventListener('resize', resizeFx);
+
+function burstAt(x, y){
+  const dpr = window.devicePixelRatio || 1;
+  const cx = x * dpr;
+  const cy = y * dpr;
+
+  const count = 26; // 파티클 개수
+  for(let i=0;i<count;i++){
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 2.2 + Math.random()*4.2;
+    particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(ang)*sp,
+      vy: Math.sin(ang)*sp,
+      life: 28 + Math.random()*18,
+      r: 1.2 + Math.random()*2.4,
+      a: 0.9
+    });
+  }
+}
+
+function tickFx(){
+  if(particles.length === 0){
+    requestAnimationFrame(tickFx);
+    return;
+  }
+  fxCtx.clearRect(0,0,FXW,FXH);
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.96;
+    p.vy *= 0.96;
+    p.life -= 1;
+    p.a *= 0.96;
+
+    fxCtx.globalAlpha = Math.max(0, p.a);
+    fxCtx.beginPath();
+    fxCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    fxCtx.fillStyle = '#ffffff';
+    fxCtx.fill();
+
+    // 작은 꼬리 느낌
+    fxCtx.globalAlpha = Math.max(0, p.a*0.55);
+    fxCtx.beginPath();
+    fxCtx.arc(p.x - p.vx*2, p.y - p.vy*2, p.r*0.7, 0, Math.PI*2);
+    fxCtx.fill();
+
+    if(p.life <= 0 || p.a < 0.02){
+      particles.splice(i,1);
+    }
+  }
+  fxCtx.globalAlpha = 1;
+  requestAnimationFrame(tickFx);
+}
+
+    function applyZoneClass(st){
+  const body = document.body;
+  body.classList.remove('zone-earth','zone-moon','zone-mars','zone-jupiter','zone-deep');
+
+  let cls = 'zone-earth';
+  if(st >= 5 && st < 12) cls = 'zone-moon';
+  else if(st >= 12 && st < 25) cls = 'zone-mars';
+  else if(st >= 25 && st < 40) cls = 'zone-jupiter';
+  else if(st >= 40) cls = 'zone-deep';
+
+  body.classList.add(cls);
+}
+    
+tickFx();
 
 // 초기에도 한번
 updateOkState();
 
     /* init */
     load();
+    applyZoneClass(state.streak);
     newProblem();
   </script>
 </body>
 </html>
+
 
 
 

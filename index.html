@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>:Space Add</title>
+  <title>::Space Add</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -153,31 +153,50 @@
       z-index:6;
       background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(3,8,18,.70) 30%, rgba(3,8,18,.95) 100%);
     }
-    .problemRow{
+  .problemBlock{
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:18px;
-  padding:20px 0 16px;
+  padding:20px 0 18px;
 }
 
 .problem{
+  font-family:'Orbitron', sans-serif;
   font-weight:900;
-  font-size: clamp(48px, 12vw, 88px);
+  font-size: clamp(52px, 14vw, 90px);
   letter-spacing:-0.02em;
-  display:flex;
-  align-items:baseline;
-  gap:12px;
   text-align:center;
   text-shadow:
     0 0 20px rgba(53,214,255,.25),
     0 0 40px rgba(53,214,255,.12);
-	font-family: 'Orbitron', sans-serif;
 }
 
-.problem span{
-  display:inline-block;
-  min-width:1ch;
+.answerRow{
+  margin-top:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border-bottom:3px solid rgba(53,214,255,.45);
+  min-width: 160px;
+  padding-bottom:6px;
+}
+
+.answer{
+  font-size: clamp(40px, 12vw, 72px);
+  font-weight:900;
+  min-height:50px;
+  min-width:80px;
+  text-align:center;
+}
+
+.cursor{
+  width:10px;
+  height:40px;
+  background: rgba(53,214,255,.85);
+  border-radius:6px;
+  animation: blink 1s infinite;
 }
 
 .equals{
@@ -433,12 +452,18 @@
       </div>
 
       <div class="bottom">
-        <div class="problemRow">
-          <div class="problem" id="problemText">
-  <span id="a">0</span>
-  <span class="equals">+</span>
-  <span id="b">0</span>
-  <span class="equals">=</span>
+        <div class="problemBlock">
+  <div class="problem">
+    <span id="a">0</span>
+    <span class="equals"> + </span>
+    <span id="b">0</span>
+    <span class="equals"> = </span>
+  </div>
+
+  <div class="answerRow">
+    <div class="answer" id="answerText"></div>
+    <div class="cursor"></div>
+  </div>
 </div>
           <div class="inputWrap" aria-label="answer input">
             <div class="answer" id="answerText"></div>
@@ -829,3 +854,4 @@
   </script>
 </body>
 </html>
+

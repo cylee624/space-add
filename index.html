@@ -148,28 +148,27 @@
 
     /* bottom game UI */
     .bottom{
-      position:absolute; left:0; right:0; bottom:0;
-      padding:18px 18px 22px;
-      z-index:6;
-      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(3,8,18,.70) 30%, rgba(3,8,18,.95) 100%);
-    }
-  .problemBlock{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  padding:18px 18px 22px;
+  z-index:6;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(3,8,18,.70) 30%, rgba(3,8,18,.95) 100%);
+}
+ .problemBlock{
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  padding:20px 0 18px;
+  padding:12px 0 10px;
 }
 
 .problem{
-  font-family:'Orbitron', sans-serif;
   font-weight:900;
   font-size: clamp(52px, 14vw, 90px);
   letter-spacing:-0.02em;
   text-align:center;
-  text-shadow:
-    0 0 20px rgba(53,214,255,.25),
-    0 0 40px rgba(53,214,255,.12);
+  text-shadow: 0 0 20px rgba(53,214,255,.25), 0 0 40px rgba(53,214,255,.12);
+  font-variant-numeric: tabular-nums; /* 숫자 폭 고정(예쁨) */
 }
 
 .answerRow{
@@ -179,8 +178,8 @@
   justify-content:center;
   gap:8px;
   border-bottom:3px solid rgba(53,214,255,.45);
-  min-width: 160px;
-  padding-bottom:6px;
+  min-width: 220px;
+  padding-bottom:8px;
 }
 
 .answer{
@@ -219,14 +218,14 @@
     }
     @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.2}}
 
-    .keypad{
-      max-width: 520px;
-      margin: 0 auto;
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:10px;
-      padding-top:8px;
-    }
+  .keypad{
+  max-width: 560px;
+  margin: 0 auto;
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:10px;
+  padding-top:10px;
+}
     button.key{
       border:1px solid rgba(53,214,255,.22);
       background: rgba(6,18,40,.55);
@@ -446,44 +445,41 @@
       </div>
 
       <div class="bottom">
-        <div class="problemBlock">
-  <div class="problem">
-    <span id="a">0</span>
-    <span class="equals"> + </span>
-    <span id="b">0</span>
-    <span class="equals"> = </span>
+  <!-- ✅ 문제 1줄 + 답 1줄 -->
+  <div class="problemBlock">
+    <div class="problem" id="problemText">
+      <span id="a">0</span>
+      <span class="equals"> + </span>
+      <span id="b">0</span>
+      <span class="equals"> = </span>
+    </div>
+
+    <div class="answerRow">
+      <div class="answer" id="answerText"></div>
+      <div class="cursor" aria-hidden="true"></div>
+    </div>
   </div>
 
-  <div class="answerRow">
-    <div class="answer" id="answerText"></div>
-    <div class="cursor"></div>
+  <!-- ✅ 키패드 -->
+  <div class="keypad" aria-label="keypad">
+    <button class="key" data-k="1">1</button>
+    <button class="key" data-k="2">2</button>
+    <button class="key" data-k="3">3</button>
+    <button class="key" data-k="4">4</button>
+    <button class="key" data-k="5">5</button>
+    <button class="key" data-k="6">6</button>
+    <button class="key" data-k="7">7</button>
+    <button class="key" data-k="8">8</button>
+    <button class="key" data-k="9">9</button>
+    <button class="key secondary danger" data-k="back">←</button>
+    <button class="key" data-k="0">0</button>
+    <button class="key ok" data-k="ok">OK</button>
+  </div>
+
+  <div class="hint">
+    키보드도 지원: <kbd>0-9</kbd> <kbd>Enter</kbd> <kbd>Backspace</kbd> <kbd>R</kbd>(리셋)
   </div>
 </div>
-          <div class="inputWrap" aria-label="answer input">
-            <div class="answer" id="answerText"></div>
-            <div class="cursor" aria-hidden="true"></div>
-          </div>
-        </div>
-
-        <div class="keypad" aria-label="keypad">
-          <button class="key" data-k="1">1</button>
-          <button class="key" data-k="2">2</button>
-          <button class="key" data-k="3">3</button>
-          <button class="key" data-k="4">4</button>
-          <button class="key" data-k="5">5</button>
-          <button class="key" data-k="6">6</button>
-          <button class="key" data-k="7">7</button>
-          <button class="key" data-k="8">8</button>
-          <button class="key" data-k="9">9</button>
-          <button class="key secondary danger" data-k="back">←</button>
-          <button class="key" data-k="0">0</button>
-          <button class="key ok" data-k="ok">OK</button>
-        </div>
-
-        <div class="hint">
-          키보드도 지원: <kbd>0-9</kbd> <kbd>Enter</kbd> <kbd>Backspace</kbd> <kbd>R</kbd>(리셋)
-        </div>
-      </div>
     </div>
 
     <!-- RIGHT -->
@@ -848,5 +844,6 @@
   </script>
 </body>
 </html>
+
 
 
